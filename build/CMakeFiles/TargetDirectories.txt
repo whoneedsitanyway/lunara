@@ -17,8 +17,6 @@
 /Users/adstarshinov/Lunara/build/CMakeFiles/LunaraFactoryPresetTest.dir
 /Users/adstarshinov/Lunara/build/CMakeFiles/LunaraHpfTest.dir
 /Users/adstarshinov/Lunara/build/CMakeFiles/LunaraFreezeTest.dir
-/Users/adstarshinov/Lunara/build/CMakeFiles/LunaraFreezeProbe.dir
-/Users/adstarshinov/Lunara/build/CMakeFiles/LunaraReverbHunt.dir
 /Users/adstarshinov/Lunara/build/CMakeFiles/edit_cache.dir
 /Users/adstarshinov/Lunara/build/CMakeFiles/rebuild_cache.dir
 /Users/adstarshinov/Lunara/build/CMakeFiles/list_install_components.dir

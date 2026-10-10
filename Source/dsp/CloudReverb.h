@@ -4,7 +4,6 @@
 #include <vector>
 #include <cmath>
 #include <algorithm>
-#include <cstdio>
 
 namespace lunara
 {
@@ -194,25 +193,6 @@ public:
 
             L[n] = dryL + wetL;
             R[n] = dryR + wetR;
-        }
-
-        // TEMP DIAGNOSTIC
-        {
-            static bool once = false;
-            float mx = 0.0f;
-            for (int n = 0; n < numSamples; ++n)
-                mx = juce::jmax (mx, std::abs (L[n]), std::abs (R[n]));
-            if (! once && (mx > 100.0f || ! std::isfinite (mx)))
-            {
-                once = true;
-                float lineMax = 0.0f; bool lineBad = false;
-                for (int i = 0; i < kLines; ++i)
-                    for (float v : lines[i])
-                    { if (! std::isfinite (v)) lineBad = true; lineMax = juce::jmax (lineMax, std::abs (v)); }
-                std::fprintf (stderr,
-                    "REVERB BLOWUP mx=%g size=%g scale=%g lineLen0=%g size0=%d write0=%d lineMax=%g lineBad=%d\n",
-                    mx, size, smoothSizeScale, lineLen[0], lineSize[0], writeIdx[0], lineMax, (int) lineBad);
-            }
         }
     }
 

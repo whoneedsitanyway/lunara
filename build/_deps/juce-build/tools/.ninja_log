@@ -1,5 +1,5 @@
 # ninja log v7
-2	45	1791635868118579260	/Users/adstarshinov/Lunara/build/_deps/juce-build/tools/CMakeFiles/cmake.verify_globs	b5ba4107a0e92259
+2	42	1791641270648973107	/Users/adstarshinov/Lunara/build/_deps/juce-build/tools/CMakeFiles/cmake.verify_globs	b5ba4107a0e92259
 36	88	1791532804030457253	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_core/juce_core_CompilationTime.cpp.o	f34790d9e1b4c411
 35	227	1791532804029920751	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_graphics/juce_graphics_Sheenbidi.c.o	bac785391a9763e5
 36	1713	1791532804030976129	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_data_structures/juce_data_structures.mm.o	a8a84c5edcbb43fa
@@ -11,4 +11,4 @@
 35	6730	1791532804029797668	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_graphics/juce_graphics_Harfbuzz.cpp.o	53ec588783263116
 35	9221	1791532804029664793	extras/Build/juceaide/CMakeFiles/juceaide.dir/__/__/__/modules/juce_gui_basics/juce_gui_basics.mm.o	8c90e378f9c9fd7
 9222	9393	1791532813216273212	extras/Build/juceaide/juceaide_artefacts/Debug/juceaide	55bc861f793dbba4
-2	38	1791637329644745683	/Users/adstarshinov/Lunara/build/_deps/juce-build/tools/CMakeFiles/cmake.verify_globs	b5ba4107a0e92259
+2	46	1791642963664597318	/Users/adstarshinov/Lunara/build/_deps/juce-build/tools/CMakeFiles/cmake.verify_globs	b5ba4107a0e92259

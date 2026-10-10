@@ -536,6 +536,7 @@ void LunaraAudioProcessorEditor::resized()
         auto col = grainsArea.reduced (10, 8);
         col.removeFromTop (20);
         auto bottom = col.removeFromBottom (50);
+        col.removeFromBottom (8);   // small gap so the combo is not tight on the knobs
         placeGrid ({ &size, &density, &spray, &pitch, &chaos }, col, 2);
         pitchModeLabel.setBounds (bottom.removeFromTop (14));
         pitchModeBox.setBounds (bottom.removeFromTop (28));
@@ -546,6 +547,7 @@ void LunaraAudioProcessorEditor::resized()
         auto col = delayArea.reduced (10, 8);
         col.removeFromTop (20);
         auto bottom = col.removeFromBottom (52);
+        col.removeFromBottom (8);   // small gap above the division/sync row
 
         auto labelRow = bottom.removeFromTop (14);
         divisionLabel.setBounds (labelRow.removeFromLeft (juce::roundToInt ((float) col.getWidth() * 0.6f)));
@@ -571,6 +573,7 @@ void LunaraAudioProcessorEditor::resized()
         auto col = outArea.reduced (10, 8);
         col.removeFromTop (20);
         auto bottom = col.removeFromBottom (52);
+        col.removeFromBottom (8);   // small gap above the checkbox block
 
         const int half = juce::roundToInt ((float) col.getWidth() * 0.5f);
 
