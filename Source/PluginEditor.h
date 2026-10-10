@@ -68,6 +68,12 @@ private:
     juce::ToggleButton freezeButton { "Freeze" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> freezeAttach;
 
+    juce::ToggleButton reverseButton { "Reverse" };
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> reverseAttach;
+
+    juce::ToggleButton extremeButton { "Stretch" };
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> extremeAttach;
+
     juce::ComboBox presetBox;
     lunara::IconButton saveButton  { lunara::IconButton::Icon::Save, "Save preset" };
     lunara::IconButton themeButton { lunara::IconButton::Icon::Moon, "Toggle theme" };

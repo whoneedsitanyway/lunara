@@ -76,6 +76,16 @@ LunaraAudioProcessorEditor::LunaraAudioProcessorEditor (LunaraAudioProcessor& p)
     freezeAttach = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
         processorRef.apvts, ids::freeze, freezeButton);
 
+    reverseButton.setTooltip ("REVERSE - play every grain backwards (a 100% reversed texture)");
+    addAndMakeVisible (reverseButton);
+    reverseAttach = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
+        processorRef.apvts, ids::reverse, reverseButton);
+
+    extremeButton.setTooltip ("STRETCH - melt everything into a long, PaulStretch-like texture");
+    addAndMakeVisible (extremeButton);
+    extremeAttach = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
+        processorRef.apvts, ids::extreme, extremeButton);
+
     startTimerHz (10);
 
     // --- header buttons (same style) ----------------------------------------
@@ -531,15 +541,20 @@ void LunaraAudioProcessorEditor::resized()
         }
     };
 
-    // GRAINS: 5 knobs (2 cols) + pitch-mode combo.
+    // GRAINS: 5 knobs (2 cols) + [PITCH MODE | REVERSE] row.
     {
         auto col = grainsArea.reduced (10, 8);
         col.removeFromTop (20);
         auto bottom = col.removeFromBottom (50);
-        col.removeFromBottom (8);   // small gap so the combo is not tight on the knobs
+        col.removeFromBottom (8);   // small gap so the row is not tight on the knobs
         placeGrid ({ &size, &density, &spray, &pitch, &chaos }, col, 2);
+
         pitchModeLabel.setBounds (bottom.removeFromTop (14));
-        pitchModeBox.setBounds (bottom.removeFromTop (28));
+
+        auto comboRow = bottom.removeFromTop (28);
+        reverseButton.setBounds (comboRow.removeFromRight (juce::roundToInt ((float) comboRow.getWidth() * 0.42f)));
+        comboRow.removeFromRight (8);
+        pitchModeBox.setBounds (comboRow);
     }
 
     // DELAY: 2x2 knobs + [DIVISION | SYNC] row.
@@ -568,7 +583,7 @@ void LunaraAudioProcessorEditor::resized()
         placeGrid ({ &reverb, &decay, &cloud }, col, 1);
     }
 
-    // OUTPUT: 3 knobs stacked + [LIMITER | AUTO GAIN] / [FREEZE] checkbox block.
+    // OUTPUT: 3 knobs stacked + [LIMITER | AUTO GAIN] / [FREEZE | STRETCH] block.
     {
         auto col = outArea.reduced (10, 8);
         col.removeFromTop (20);
@@ -583,7 +598,10 @@ void LunaraAudioProcessorEditor::resized()
         autoGainButton.setBounds (checkRow);
 
         bottom.removeFromTop (8);
-        freezeButton.setBounds (bottom.removeFromTop (22));
+        auto toggleRow = bottom.removeFromTop (22);
+        freezeButton.setBounds (toggleRow.removeFromLeft (half));
+        toggleRow.removeFromLeft (8);
+        extremeButton.setBounds (toggleRow);
 
         placeGrid ({ &hpf, &output, &mix }, col, 1);
     }

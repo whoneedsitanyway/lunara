@@ -42,6 +42,9 @@ struct BlockSnapshot
     bool   halfTime = false;
     bool   autoGainOn = false;
     bool   frozen   = false;
+    bool   reverseOn = false;   // REVERSE switch engaged
+    bool   extreme   = false;   // STRETCH switch engaged (any non-zero amount)
+    float  extremeAmt = 0.0f;   // smoothed STRETCH amount (0..1)
 
     unsigned flags  = 0;
 };

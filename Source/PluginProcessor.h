@@ -42,6 +42,8 @@ namespace lunara
         static constexpr const char* halftime   = "halftime";
         static constexpr const char* chaos      = "chaos";
         static constexpr const char* fxSource   = "fxSource";
+        static constexpr const char* reverse    = "reverse";
+        static constexpr const char* extreme    = "extreme";
     }
 
     // Sync division values expressed as a fraction of a whole note.
@@ -146,6 +148,10 @@ private:
 
     juce::SmoothedValue<float> mixSmoothed, outputSmoothed;
     juce::SmoothedValue<float> autoGainSmoothed;
+
+    // Smooth 0..1 amount for the STRETCH ("Extreme") mode: it fades the whole
+    // chain towards its most diffuse settings, so the switch never clicks.
+    juce::SmoothedValue<float> extremeSmoothed;
 
     // Auto-gain (level matching) envelope followers.
     float dryRms = 0.0f;

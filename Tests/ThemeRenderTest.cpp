@@ -112,13 +112,22 @@ int main()
             ++tooLight;
     }
 
-    // OUTPUT checkboxes (Limiter / Auto Gain / Freeze) must be legible in the
-    // light theme too - the text sits on the light panel background.
-    const juce::StringArray wantedToggles { "Limiter", "Auto Gain", "Freeze" };
+    // OUTPUT checkboxes (Limiter / Auto Gain / Freeze / Stretch) and the GRAINS
+    // Reverse toggle must be legible in the light theme too - the text sits on
+    // the light panel background.
+    const juce::StringArray wantedToggles { "Limiter", "Auto Gain", "Freeze", "Stretch", "Reverse" };
     for (auto* t : toggles)
     {
         if (! wantedToggles.contains (t->getButtonText()))
             continue;
+
+        // The control must actually be laid out (not left at 0x0).
+        if (t->getWidth() <= 0 || t->getHeight() <= 0)
+        {
+            std::cout << "  toggle '" << t->getButtonText() << "' has an empty bounds" << std::endl;
+            ++tooLight;
+            continue;
+        }
 
         const float minL = minLumaIn (t->getBounds().reduced (2));
         ++checked;

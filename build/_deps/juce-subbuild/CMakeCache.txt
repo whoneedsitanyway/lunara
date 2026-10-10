@@ -14,8 +14,8 @@
 # EXTERNAL cache entries
 ########################
 
-//Enable/Disable output of build database during the build.
-CMAKE_EXPORT_BUILD_DATABASE:BOOL=
+//Enable/Disable color output during build.
+CMAKE_COLOR_MAKEFILE:BOOL=ON
 
 //Enable/Disable output of compile commands during generation.
 CMAKE_EXPORT_COMPILE_COMMANDS:BOOL=
@@ -33,7 +33,7 @@ CMAKE_INSTALL_PREFIX:PATH=/usr/local
 // the full path to an executable or just the tool name if it is
 // expected to be in the PATH. The tool selected depends on the
 // CMAKE_GENERATOR used to configure the project:
-CMAKE_MAKE_PROGRAM:FILEPATH=/Users/adstarshinov/Lunara/.tools/bin/ninja
+CMAKE_MAKE_PROGRAM:FILEPATH=/usr/bin/make
 
 //Build architectures for OSX
 CMAKE_OSX_ARCHITECTURES:STRING=
@@ -96,6 +96,8 @@ CMAKE_CACHE_MAJOR_VERSION:INTERNAL=4
 CMAKE_CACHE_MINOR_VERSION:INTERNAL=4
 //Patch version of cmake used to create the current loaded cache
 CMAKE_CACHE_PATCH_VERSION:INTERNAL=4
+//ADVANCED property for variable: CMAKE_COLOR_MAKEFILE
+CMAKE_COLOR_MAKEFILE-ADVANCED:INTERNAL=1
 //Path to CMake executable.
 CMAKE_COMMAND:INTERNAL=/Users/adstarshinov/Lunara/.tools/lib/python3.14/site-packages/cmake/data/bin/cmake
 //Path to cpack program executable.
@@ -109,14 +111,12 @@ CMAKE_DIAGNOSTIC_INIT:INTERNAL=CMD_AUTHOR=WARN;CMD_DEPRECATED=WARN;CMD_EXPERIMEN
 CMAKE_EDIT_COMMAND:INTERNAL=/Users/adstarshinov/Lunara/.tools/lib/python3.14/site-packages/cmake/data/bin/ccmake
 //Deprecated.  Use -W[no-]error=deprecated instead.
 CMAKE_ERROR_DEPRECATED:INTERNAL=OFF
-//ADVANCED property for variable: CMAKE_EXPORT_BUILD_DATABASE
-CMAKE_EXPORT_BUILD_DATABASE-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_EXPORT_COMPILE_COMMANDS
 CMAKE_EXPORT_COMPILE_COMMANDS-ADVANCED:INTERNAL=1
 //Name of external makefile project generator.
 CMAKE_EXTRA_GENERATOR:INTERNAL=
 //Name of generator.
-CMAKE_GENERATOR:INTERNAL=Ninja
+CMAKE_GENERATOR:INTERNAL=Unix Makefiles
 //Generator instance identifier.
 CMAKE_GENERATOR_INSTANCE:INTERNAL=
 //Name of generator platform.

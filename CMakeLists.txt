@@ -406,3 +406,36 @@ target_link_libraries(LunaraFreezeTest
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags
 )
+
+# -----------------------------------------------------------------------------
+# Offline REVERSE / STRETCH test (runs the real processor)
+# -----------------------------------------------------------------------------
+juce_add_console_app(LunaraStretchReverseTest PRODUCT_NAME "LunaraStretchReverseTest")
+
+target_sources(LunaraStretchReverseTest PRIVATE
+    Tests/StretchReverseTest.cpp
+    Source/PluginProcessor.cpp
+    Source/PluginEditor.cpp
+    Source/DebugLogger.cpp
+    Source/ui/LunaraLookAndFeel.cpp
+    Source/ui/WaveDisplay.cpp
+)
+
+target_include_directories(LunaraStretchReverseTest PRIVATE Source)
+
+target_compile_definitions(LunaraStretchReverseTest PRIVATE
+    JUCE_WEB_BROWSER=0
+    JUCE_USE_CURL=0
+    JUCE_DISPLAY_SPLASH_SCREEN=0
+    JUCE_STRICT_REFCOUNTEDPOINTER=1
+    JucePlugin_Name="Lunara"
+)
+
+target_link_libraries(LunaraStretchReverseTest
+    PRIVATE
+        juce::juce_audio_utils
+        juce::juce_dsp
+    PUBLIC
+        juce::juce_recommended_config_flags
+        juce::juce_recommended_warning_flags
+)

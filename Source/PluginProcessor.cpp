@@ -132,6 +132,13 @@ APVTS::ParameterLayout LunaraAudioProcessor::createParameterLayout()
     // granular cloud always stays audible in parallel (see processBlock).
     addChoice (ids::fxSource, "FX Source", { "IN", "OUT", "BOTH" }, 1);
 
+    // REVERSE: play every grain backwards (a full 100% reverse probability).
+    params.push_back (std::make_unique<juce::AudioParameterBool> (ids::reverse, "Reverse", false));
+
+    // STRETCH ("Extreme"): fade the whole chain into a long, PaulStretch-like
+    // texture (long grains, dense cloud, big reverb/delay tails).
+    params.push_back (std::make_unique<juce::AudioParameterBool> (ids::extreme, "Stretch", false));
+
     return { params.begin(), params.end() };
 }
 
@@ -167,6 +174,8 @@ void LunaraAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     mixSmoothed.reset (sampleRate, 0.02);
     outputSmoothed.reset (sampleRate, 0.02);
     autoGainSmoothed.reset (sampleRate, 0.12);
+    // ~0.6 s fade in/out for the STRETCH mode.
+    extremeSmoothed.reset (sampleRate, 0.6);
 
     // ~150 ms RMS followers for the auto-gain level match.
     autoGainCoeff = std::exp (-1.0f / (0.15f * (float) sampleRate));
@@ -176,6 +185,8 @@ void LunaraAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     mixSmoothed.setCurrentAndTargetValue (apvts.getRawParameterValue (lunara::ids::mix)->load());
     outputSmoothed.setCurrentAndTargetValue (
         juce::Decibels::decibelsToGain (apvts.getRawParameterValue (lunara::ids::output)->load()));
+    extremeSmoothed.setCurrentAndTargetValue (
+        apvts.getRawParameterValue (lunara::ids::extreme)->load() > 0.5f ? 1.0f : 0.0f);
 
     // Start the "black box" recorder (idempotent).
     logTimeSec = 0.0;
@@ -233,26 +244,39 @@ void LunaraAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         : raw (ids::delay);
     const float delayMs = juce::jlimit (1.0f, 3900.0f, delayMsRaw * (halfTime ? 2.0f : 1.0f));
 
-    const float feedback = raw (ids::feedback);
+    // STRETCH ("Extreme"): a smooth 0..1 amount that fades the whole chain
+    // towards its most diffuse settings - long grains, a dense cloud, a big
+    // reverb/delay tail and a slow drift. PaulStretch-style: any input melts
+    // into a long, evolving texture. Bounded so the safety stage stays in
+    // charge (feedback stays below the tested 0.95 ceiling).
+    extremeSmoothed.setTargetValue (raw (ids::extreme) > 0.5f ? 1.0f : 0.0f);
+    const float ex = extremeSmoothed.getNextValue();
+    auto melt = [] (float base, float extreme, float t) { return base + (extreme - base) * t; };
+
+    const float feedback = melt (raw (ids::feedback), 0.93f, ex);
     const float pingpong = raw (ids::pingpong);
     const float tone     = raw (ids::tone);
 
-    const float reverbSend = juce::jlimit (0.0f, 1.2f, raw (ids::reverb) * mc.reverbMul);
-    const float decay      = juce::jlimit (0.0f, 1.0f, raw (ids::decay) + (halfTime ? 0.12f : 0.0f));
-    const float cloud      = juce::jlimit (0.0f, 1.0f, raw (ids::cloud) + mc.cloudAdd);
+    const float reverbSend = melt (juce::jlimit (0.0f, 1.2f, raw (ids::reverb) * mc.reverbMul), 1.2f, ex);
+    const float decay      = melt (juce::jlimit (0.0f, 1.0f, raw (ids::decay) + (halfTime ? 0.12f : 0.0f)), 1.0f, ex);
+    const float cloud      = melt (juce::jlimit (0.0f, 1.0f, raw (ids::cloud) + mc.cloudAdd), 1.0f, ex);
     const float revSize    = halfTime ? 0.78f : 0.6f;
 
+    // REVERSE: force every grain to play backwards.
+    const bool reverseOn = raw (ids::reverse) > 0.5f;
+
     GrainParams gp;
-    gp.grainSizeMs   = juce::jlimit (20.0f, 500.0f, raw (ids::size) * mc.sizeMul * (halfTime ? 1.4f : 1.0f));
-    gp.density       = juce::jlimit (1.0f, 120.0f, raw (ids::density) * mc.densityMul);
-    gp.spray         = juce::jlimit (0.0f, 1.0f, raw (ids::spray) + mc.sprayAdd);
+    gp.grainSizeMs   = juce::jlimit (20.0f, 500.0f,
+                                     melt (raw (ids::size) * mc.sizeMul * (halfTime ? 1.4f : 1.0f), 500.0f, ex));
+    gp.density       = juce::jlimit (1.0f, 120.0f, melt (raw (ids::density) * mc.densityMul, 120.0f, ex));
+    gp.spray         = juce::jlimit (0.0f, 1.0f, melt (raw (ids::spray) + mc.sprayAdd, 1.0f, ex));
     gp.pitchSemis    = raw (ids::pitch) + (halfTime ? -12.0f : 0.0f);
     gp.pitchQuantize = raw (ids::pitchMode) < 0.5f;
-    gp.reverseProb   = juce::jlimit (0.0f, 1.0f, 0.05f + mc.reverseAdd);
+    gp.reverseProb   = reverseOn ? 1.0f : juce::jlimit (0.0f, 1.0f, 0.05f + mc.reverseAdd);
     gp.stereoSpread  = 0.65f;
     gp.jitter        = 0.35f;
     gp.chaos         = raw (ids::chaos);
-    gp.drift         = juce::jlimit (0.0f, 1.0f, mc.drift + raw (ids::chaos) * 0.3f);
+    gp.drift         = juce::jlimit (0.0f, 1.0f, melt (mc.drift + raw (ids::chaos) * 0.3f, 0.6f, ex));
     gp.frozen        = raw (ids::freeze) > 0.5f;
 
     const bool  limiterOn = raw (ids::limiter) > 0.5f;
@@ -525,6 +549,9 @@ void LunaraAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         snap.halfTime    = halfTime;
         snap.autoGainOn  = autoGainOn;
         snap.frozen      = gp.frozen;
+        snap.reverseOn   = reverseOn;
+        snap.extreme     = ex > 0.01f;
+        snap.extremeAmt  = ex;
 
         if (bad)                    snap.flags |= lunara::kFlagNonFinite;
         if (snap.inPeak > 2.0f)     snap.flags |= lunara::kFlagInputHot;

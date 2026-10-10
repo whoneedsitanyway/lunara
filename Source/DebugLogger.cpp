@@ -202,7 +202,9 @@ juce::String DebugLogger::formatLine (const BlockSnapshot& s, bool anomaly)
          << " mode=" << s.mode
          << " HT=" << (s.halfTime ? 1 : 0)
          << " AGen=" << (s.autoGainOn ? 1 : 0)
-         << " FZ=" << (s.frozen ? 1 : 0);
+         << " FZ=" << (s.frozen ? 1 : 0)
+         << " RV=" << (s.reverseOn ? 1 : 0)
+         << " EX=" << juce::String (s.extremeAmt, 2);
     return line;
 }
 

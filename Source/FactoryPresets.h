@@ -17,7 +17,7 @@
 //==============================================================================
 namespace lunara::factory
 {
-    inline constexpr int kFactoryPresetVersion = 3;
+    inline constexpr int kFactoryPresetVersion = 4;
 
     struct Preset
     {
@@ -39,7 +39,9 @@ namespace lunara::factory
   <PARAM id="density" value="100.0"/>
   <PARAM id="division" value="9.0"/>
   <PARAM id="feedback" value="0.7969749569892883"/>
+  <PARAM id="extreme" value="0.0"/>
   <PARAM id="freeze" value="0.0"/>
+  <PARAM id="reverse" value="0.0"/>
   <PARAM id="fxSource" value="2.0"/>
   <PARAM id="halftime" value="0.0"/>
   <PARAM id="hpf" value="100.0"/>
@@ -68,7 +70,9 @@ namespace lunara::factory
   <PARAM id="density" value="57.19089508056641"/>
   <PARAM id="division" value="9.0"/>
   <PARAM id="feedback" value="0.6738632321357727"/>
+  <PARAM id="extreme" value="0.0"/>
   <PARAM id="freeze" value="0.0"/>
+  <PARAM id="reverse" value="0.0"/>
   <PARAM id="fxSource" value="2.0"/>
   <PARAM id="halftime" value="0.0"/>
   <PARAM id="hpf" value="110.0"/>
@@ -97,7 +101,9 @@ namespace lunara::factory
   <PARAM id="density" value="73.27000427246094"/>
   <PARAM id="division" value="10.0"/>
   <PARAM id="feedback" value="0.7969749569892883"/>
+  <PARAM id="extreme" value="0.0"/>
   <PARAM id="freeze" value="0.0"/>
+  <PARAM id="reverse" value="0.0"/>
   <PARAM id="fxSource" value="2.0"/>
   <PARAM id="halftime" value="1.0"/>
   <PARAM id="hpf" value="80.0"/>
@@ -126,7 +132,9 @@ namespace lunara::factory
   <PARAM id="density" value="57.19089508056641"/>
   <PARAM id="division" value="2.0"/>
   <PARAM id="feedback" value="0.6738632321357727"/>
+  <PARAM id="extreme" value="0.0"/>
   <PARAM id="freeze" value="0.0"/>
+  <PARAM id="reverse" value="0.0"/>
   <PARAM id="fxSource" value="2.0"/>
   <PARAM id="halftime" value="0.0"/>
   <PARAM id="hpf" value="140.0"/>
@@ -155,7 +163,9 @@ namespace lunara::factory
   <PARAM id="density" value="73.27000427246094"/>
   <PARAM id="division" value="8.0"/>
   <PARAM id="feedback" value="0.5517562031745911"/>
+  <PARAM id="extreme" value="0.0"/>
   <PARAM id="freeze" value="0.0"/>
+  <PARAM id="reverse" value="0.0"/>
   <PARAM id="fxSource" value="1.0"/>
   <PARAM id="halftime" value="0.0"/>
   <PARAM id="hpf" value="90.0"/>
@@ -184,7 +194,9 @@ namespace lunara::factory
   <PARAM id="density" value="73.27000427246094"/>
   <PARAM id="division" value="8.0"/>
   <PARAM id="feedback" value="0.7969749569892883"/>
+  <PARAM id="extreme" value="0.0"/>
   <PARAM id="freeze" value="0.0"/>
+  <PARAM id="reverse" value="0.0"/>
   <PARAM id="fxSource" value="2.0"/>
   <PARAM id="halftime" value="0.0"/>
   <PARAM id="hpf" value="120.0"/>
