@@ -1,7 +1,6 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
-#include <juce_audio_utils/juce_audio_utils.h>
 
 #include <atomic>
 #include <vector>
@@ -82,7 +81,9 @@ public:
     bool acceptsMidi() const override { return false; }
     bool producesMidi() const override { return false; }
     bool isMidiEffect() const override { return false; }
-    double getTailLengthSeconds() const override { return 8.0; }
+    // 12 s covers the longest musical tails (STRETCH mode / max reverb decay)
+    // for hosts that render the tail after the input stops.
+    double getTailLengthSeconds() const override { return 12.0; }
 
     int getNumPrograms() override { return 1; }
     int getCurrentProgram() override { return 0; }
@@ -128,6 +129,42 @@ public:
 
 private:
     juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
+
+    // Cached raw parameter pointers, filled once in the constructor. The audio
+    // thread reads these instead of doing a string lookup per block
+    // (apvts.getRawParameterValue is a search by parameter id).
+    struct RawParams
+    {
+        std::atomic<float>* mix       = nullptr;
+        std::atomic<float>* mode      = nullptr;
+        std::atomic<float>* halftime  = nullptr;
+        std::atomic<float>* sync      = nullptr;
+        std::atomic<float>* division  = nullptr;
+        std::atomic<float>* delay     = nullptr;
+        std::atomic<float>* feedback  = nullptr;
+        std::atomic<float>* pingpong  = nullptr;
+        std::atomic<float>* tone      = nullptr;
+        std::atomic<float>* reverb    = nullptr;
+        std::atomic<float>* decay     = nullptr;
+        std::atomic<float>* cloud     = nullptr;
+        std::atomic<float>* size      = nullptr;
+        std::atomic<float>* density   = nullptr;
+        std::atomic<float>* spray     = nullptr;
+        std::atomic<float>* pitch     = nullptr;
+        std::atomic<float>* pitchMode = nullptr;
+        std::atomic<float>* chaos     = nullptr;
+        std::atomic<float>* freeze    = nullptr;
+        std::atomic<float>* limiter   = nullptr;
+        std::atomic<float>* hpf       = nullptr;
+        std::atomic<float>* output    = nullptr;
+        std::atomic<float>* autoGain  = nullptr;
+        std::atomic<float>* fxSource  = nullptr;
+        std::atomic<float>* reverse   = nullptr;
+        std::atomic<float>* extreme   = nullptr;
+    };
+
+    void bindRawParams();
+    RawParams rawParams;
 
     double currentBpm = 120.0;
     double currentSampleRate = 48000.0;

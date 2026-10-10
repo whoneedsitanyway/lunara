@@ -88,7 +88,7 @@ private:
 
     bool compact = false;
     bool darkTheme = true;
-    bool outputAutoGainDisabled = false;
+    bool lastAutoGainOn = false;   // cached Auto Gain state (dims OUTPUT when on)
     static constexpr int kFullHeight    = 760;
     static constexpr int kCompactHeight = 500;
 

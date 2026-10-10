@@ -81,27 +81,27 @@ Tests/
   FactoryPresetTest.cpp       вшитые пресеты + выбор "Play with Me" по умолчанию
   HpfTest.cpp                 HPF-ручка: дефолт 100 Гц, режет низ, не трогает верх
   FreezeTest.cpp              Freeze удерживает облако на тишине (без него — затухает)
-  ReverbProbe.cpp             замер уровня хвоста реверба (отладка гейн-стейджинга)
+  StretchReverseTest.cpp      REVERSE разворачивает облако; STRETCH тянет хвост
 doc/                          эта документация
 ```
 
 ## Тесты
 
+Все офлайн-тесты собираются вместе с плагином (`cmake --build build`) или
+поимённо: `--target LunaraDspTest LunaraHpfTest ...`. Таргеты создаются
+хелперами `lunara_add_dsp_test` / `lunara_add_processors_test` /
+`lunara_add_plugin_test` в `CMakeLists.txt` — новый тест достаточно добавить
+одной строкой.
+
+Запуск всех тестов:
+
 ```bash
-.tools/bin/cmake --build build --config Release --target LunaraDspTest LunaraPresetTest LunaraAutoGainTest LunaraDriftTest LunaraHalftimeTest LunaraRunawayTest LunaraThemeRenderTest LunaraParamFormatTest LunaraFxSourceTest LunaraFactoryPresetTest LunaraHpfTest LunaraFreezeTest LunaraReverbProbe
-./build/LunaraDspTest_artefacts/Release/LunaraDspTest
-./build/LunaraPresetTest_artefacts/Release/LunaraPresetTest
-./build/LunaraAutoGainTest_artefacts/Release/LunaraAutoGainTest
-./build/LunaraDriftTest_artefacts/Release/LunaraDriftTest
-./build/LunaraHalftimeTest_artefacts/Release/LunaraHalftimeTest
-./build/LunaraRunawayTest_artefacts/Release/LunaraRunawayTest
-./build/LunaraThemeRenderTest_artefacts/Release/LunaraThemeRenderTest
-./build/LunaraParamFormatTest_artefacts/Release/LunaraParamFormatTest
-./build/LunaraFxSourceTest_artefacts/Release/LunaraFxSourceTest
-./build/LunaraFactoryPresetTest_artefacts/Release/LunaraFactoryPresetTest
-./build/LunaraHpfTest_artefacts/Release/LunaraHpfTest
-./build/LunaraFreezeTest_artefacts/Release/LunaraFreezeTest
-./build/LunaraReverbProbe_artefacts/Release/LunaraReverbProbe
+cd ~/Lunara
+for t in DspTest PresetTest DriftTest HalftimeTest RunawayTest AutoGainTest \
+         ThemeRenderTest ParamFormatTest FxSourceTest FactoryPresetTest \
+         HpfTest FreezeTest StretchReverseTest; do
+    "./build/Lunara${t}_artefacts/Release/Lunara${t}" || exit 1
+done
 ```
 
 ## Отладка / чёрный ящик
@@ -125,7 +125,9 @@ doc/                          эта документация
 
 1. Добавить id в `lunara::ids` (`PluginProcessor.h`).
 2. Создать параметр в `createParameterLayout()` (`PluginProcessor.cpp`).
-3. Прочитать его в `processBlock` через `raw(ids::...)`.
+3. Добавить указатель в `RawParams` (`PluginProcessor.h`) и биндинг в
+   `bindRawParams()` — в `processBlock` параметр читается как
+   `rawParams.<имя>->load()` (без строковых лукапов в audio-потоке).
 4. Добавить контрол в редакторе (`addKnob`/`addCombo`) и в `resized()`.
 5. Обновить [PARAMETERS.md](PARAMETERS.md).
 

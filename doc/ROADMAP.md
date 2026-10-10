@@ -1,6 +1,6 @@
 # Roadmap
 
-## Сделано (v0.1.0)
+## Сделано (v1.0.0)
 
 - [x] Каркас CMake + JUCE 8, форматы VST3 / AU / Standalone.
 - [x] Гранулярный движок: size, density, spray, jitter, reverse, стерео-разброс.
@@ -97,6 +97,17 @@
       тянется бесконечно даже при тишине на входе. Тест `Tests/FreezeTest.cpp`.
 - [x] Документация в `./doc`.
 - [x] Валидация AU (`auval`).
+- [x] **REVERSE** — галочка в GRAINS (рядом с Pitch Mode): все граны играют
+      назад (100% reverse); тест `Tests/StretchReverseTest.cpp`.
+- [x] **STRETCH** — галочка в OUTPUT (рядом с Freeze): плавно (~0.6 с) переводит
+      всю цепь в длинную PaulStretch-подобную текстуру (size→500 мс, density→120,
+      spray→1, feedback→0.93, реверб/decay/cloud→max, drift +0.6) и так же плавно
+      возвращает; тест `Tests/StretchReverseTest.cpp`.
+- [x] **Подготовка релиза 1.0.0**: версия в CMake и в шапке UI; tail length 12 с
+      (хвосты STRETCH не обрезаются при офлайн-рендере); кэш raw-параметров
+      (без строковых лукапов в audio-потоке); счётчик активных грейнов; пути
+      осциллографа без аллокаций; CMake-хелперы для тестов; удалён устаревший
+      отладочный `ReverbProbe`; добавлен `.gitignore`.
 
 ## Идеи / далее
 

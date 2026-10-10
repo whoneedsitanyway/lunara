@@ -187,10 +187,10 @@ void LunaraAudioProcessorEditor::timerCallback()
 void LunaraAudioProcessorEditor::updateAutoGainUi()
 {
     const bool on = processorRef.apvts.getRawParameterValue (ids::autoGain)->load() > 0.5f;
-    if (on == outputAutoGainDisabled)
+    if (on == lastAutoGainOn)
         return;
 
-    outputAutoGainDisabled = on;
+    lastAutoGainOn = on;
     output.slider.setEnabled (! on);
     output.slider.setAlpha (on ? 0.35f : 1.0f);
     output.label.setAlpha (on ? 0.45f : 1.0f);
@@ -455,6 +455,16 @@ void LunaraAudioProcessorEditor::paint (juce::Graphics& g)
     g.drawText ("GRANULAR CLOUD  /  DELAY  /  REVERB",
                 juce::roundToInt (encF.getX() + 36.0f), juce::roundToInt (encF.getY() + 56.0f),
                 380, 16, juce::Justification::centredLeft, false);
+
+    // Version tag. JucePlugin_VersionString is defined for the plugin targets;
+    // the offline test builds compile this block out.
+   #ifdef JucePlugin_VersionString
+    g.setColour (findColour (LunaraLookAndFeel::textDimColourId).withAlpha (0.75f));
+    g.drawText ("v" JucePlugin_VersionString,
+                juce::roundToInt (encF.getRight() - 34.0f - 120.0f),
+                juce::roundToInt (encF.getY() + 56.0f),
+                120, 16, juce::Justification::centredRight, false);
+   #endif
 
     paintSectionLabel (g, grainsArea, "GRAINS");
     paintSectionLabel (g, delayArea,  "DELAY");

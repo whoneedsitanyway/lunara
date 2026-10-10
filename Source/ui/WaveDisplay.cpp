@@ -147,10 +147,11 @@ void WaveDisplay::paint (juce::Graphics& g)
 
         const float dispGain = 1.8f;
 
-        auto drawTrace = [&] (const std::vector<float>& mn, const std::vector<float>& mx,
+        auto drawTrace = [&] (juce::Path& path, const std::vector<float>& mn,
+                              const std::vector<float>& mx,
                               juce::Colour colour, float thickness)
         {
-            juce::Path path;
+            path.clear();
             for (int x = 0; x < w; ++x)
             {
                 const int b0 = (int) ((int64_t) x * bucketsToShow / w);
@@ -176,8 +177,8 @@ void WaveDisplay::paint (juce::Graphics& g)
                                                       juce::PathStrokeType::butt));
         };
 
-        drawTrace (minIn,  maxIn,  accent, 1.2f);
-        drawTrace (minOut, maxOut, juce::Colours::white.withAlpha (0.30f), 1.6f);
+        drawTrace (tracePathIn,  minIn,  maxIn,  accent, 1.2f);
+        drawTrace (tracePathOut, minOut, maxOut, juce::Colours::white.withAlpha (0.30f), 1.6f);
     }
     else if (warming)
     {

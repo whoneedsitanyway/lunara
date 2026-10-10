@@ -76,9 +76,6 @@ public:
     juce::File getLogFile() const;
 
     bool     hasAnomaly()        const noexcept { return anomalyCount.load (std::memory_order_relaxed) > 0; }
-    int      getAnomalyCount()   const noexcept { return anomalyCount.load (std::memory_order_relaxed); }
-    unsigned getLastFlags()      const noexcept { return lastFlags.load (std::memory_order_relaxed); }
-    double   getLastAnomalySec() const noexcept { return lastAnomalySec.load (std::memory_order_relaxed); }
 
     void clearAnomaly() noexcept { anomalyCount.store (0, std::memory_order_relaxed);
                                    lastFlags.store (0, std::memory_order_relaxed); }

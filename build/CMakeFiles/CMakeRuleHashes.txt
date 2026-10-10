@@ -1,4 +1,0 @@
-# Hashes of file build rules.
-fb72c1337f6c099cf8b8288b53261b8f Lunara_artefacts/JuceLibraryCode/Lunara_AU/PkgInfo
-c52621f50e2f36b1da3b78fa31003776 Lunara_artefacts/JuceLibraryCode/Lunara_Standalone/PkgInfo
-0008e973e5e129c8e300208599c09d05 Lunara_artefacts/JuceLibraryCode/Lunara_VST3/PkgInfo

@@ -42,6 +42,9 @@ private:
     std::vector<float> minIn, maxIn, minOut, maxOut;
     int allocatedBuckets = 0;
 
+    // Reused across paints so the 90 Hz repaint never allocates.
+    juce::Path tracePathIn, tracePathOut;
+
     static constexpr int kNumLevels = 4;
     static constexpr float kBarLevels[kNumLevels] = { 0.5f, 1.0f, 2.0f, 4.0f };
     int zoomLevel = 3;   // default = 4 bars

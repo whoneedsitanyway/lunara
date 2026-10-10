@@ -55,9 +55,44 @@ LunaraAudioProcessor::LunaraAudioProcessor()
                         .withOutput ("Output", juce::AudioChannelSet::stereo(), true)),
       apvts (*this, nullptr, "PARAMETERS", createParameterLayout())
 {
+    bindRawParams();
 }
 
 LunaraAudioProcessor::~LunaraAudioProcessor() = default;
+
+//==============================================================================
+void LunaraAudioProcessor::bindRawParams()
+{
+    using namespace lunara;
+    auto bind = [this] (const char* id) { return apvts.getRawParameterValue (id); };
+
+    rawParams.mix       = bind (ids::mix);
+    rawParams.mode      = bind (ids::mode);
+    rawParams.halftime  = bind (ids::halftime);
+    rawParams.sync      = bind (ids::sync);
+    rawParams.division  = bind (ids::division);
+    rawParams.delay     = bind (ids::delay);
+    rawParams.feedback  = bind (ids::feedback);
+    rawParams.pingpong  = bind (ids::pingpong);
+    rawParams.tone      = bind (ids::tone);
+    rawParams.reverb    = bind (ids::reverb);
+    rawParams.decay     = bind (ids::decay);
+    rawParams.cloud     = bind (ids::cloud);
+    rawParams.size      = bind (ids::size);
+    rawParams.density   = bind (ids::density);
+    rawParams.spray     = bind (ids::spray);
+    rawParams.pitch     = bind (ids::pitch);
+    rawParams.pitchMode = bind (ids::pitchMode);
+    rawParams.chaos     = bind (ids::chaos);
+    rawParams.freeze    = bind (ids::freeze);
+    rawParams.limiter   = bind (ids::limiter);
+    rawParams.hpf       = bind (ids::hpf);
+    rawParams.output    = bind (ids::output);
+    rawParams.autoGain  = bind (ids::autoGain);
+    rawParams.fxSource  = bind (ids::fxSource);
+    rawParams.reverse   = bind (ids::reverse);
+    rawParams.extreme   = bind (ids::extreme);
+}
 
 //==============================================================================
 APVTS::ParameterLayout LunaraAudioProcessor::createParameterLayout()
@@ -154,7 +189,7 @@ void LunaraAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     syncDelay.prepare (sampleRate);
     cloudReverb.prepare (sampleRate);
     outputLimiter.prepare (sampleRate);
-    outputHpf.prepare (sampleRate, apvts.getRawParameterValue (lunara::ids::hpf)->load());
+    outputHpf.prepare (sampleRate, rawParams.hpf->load());
     dryBuffer.setSize (2, samplesPerBlock, false, false, true);
     wetBuffer.setSize (2, samplesPerBlock, false, false, true);
     fxBuffer.setSize (2, samplesPerBlock, false, false, true);
@@ -182,11 +217,11 @@ void LunaraAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     dryRms = outRms = 0.0f;
     autoGainSmoothed.setCurrentAndTargetValue (1.0f);
 
-    mixSmoothed.setCurrentAndTargetValue (apvts.getRawParameterValue (lunara::ids::mix)->load());
+    mixSmoothed.setCurrentAndTargetValue (rawParams.mix->load());
     outputSmoothed.setCurrentAndTargetValue (
-        juce::Decibels::decibelsToGain (apvts.getRawParameterValue (lunara::ids::output)->load()));
+        juce::Decibels::decibelsToGain (rawParams.output->load()));
     extremeSmoothed.setCurrentAndTargetValue (
-        apvts.getRawParameterValue (lunara::ids::extreme)->load() > 0.5f ? 1.0f : 0.0f);
+        rawParams.extreme->load() > 0.5f ? 1.0f : 0.0f);
 
     // Start the "black box" recorder (idempotent).
     logTimeSec = 0.0;
@@ -227,21 +262,21 @@ void LunaraAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
                     currentBpm = *bpm;
 
     using namespace lunara;
-    auto raw = [this] (const char* id) { return apvts.getRawParameterValue (id)->load(); };
+    auto& rp = rawParams;   // cached pointers: no string lookups on the audio thread
 
-    const float mix     = raw (ids::mix);
-    const int   modeIdx = juce::jlimit (0, 5, (int) raw (ids::mode));
+    const float mix     = rp.mix->load();
+    const int   modeIdx = juce::jlimit (0, 5, (int) rp.mode->load());
     const ModeChar mc   = kModes[modeIdx];
 
     // HALF TIME: everything runs at half speed - grains an octave down, delay
     // times doubled and a longer reverb tail - like the classic "half time" FX.
-    const bool halfTime = raw (ids::halftime) > 0.5f;
+    const bool halfTime = rp.halftime->load() > 0.5f;
 
-    const bool  syncOn  = raw (ids::sync) > 0.5f;
-    const int   divIdx  = juce::jlimit (0, 10, (int) raw (ids::division));
+    const bool  syncOn  = rp.sync->load() > 0.5f;
+    const int   divIdx  = juce::jlimit (0, 10, (int) rp.division->load());
     const float delayMsRaw = syncOn
         ? (float) (60000.0 / currentBpm * kDivisions[divIdx])
-        : raw (ids::delay);
+        : rp.delay->load();
     const float delayMs = juce::jlimit (1.0f, 3900.0f, delayMsRaw * (halfTime ? 2.0f : 1.0f));
 
     // STRETCH ("Extreme"): a smooth 0..1 amount that fades the whole chain
@@ -249,37 +284,37 @@ void LunaraAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     // reverb/delay tail and a slow drift. PaulStretch-style: any input melts
     // into a long, evolving texture. Bounded so the safety stage stays in
     // charge (feedback stays below the tested 0.95 ceiling).
-    extremeSmoothed.setTargetValue (raw (ids::extreme) > 0.5f ? 1.0f : 0.0f);
+    extremeSmoothed.setTargetValue (rp.extreme->load() > 0.5f ? 1.0f : 0.0f);
     const float ex = extremeSmoothed.getNextValue();
     auto melt = [] (float base, float extreme, float t) { return base + (extreme - base) * t; };
 
-    const float feedback = melt (raw (ids::feedback), 0.93f, ex);
-    const float pingpong = raw (ids::pingpong);
-    const float tone     = raw (ids::tone);
+    const float feedback = melt (rp.feedback->load(), 0.93f, ex);
+    const float pingpong = rp.pingpong->load();
+    const float tone     = rp.tone->load();
 
-    const float reverbSend = melt (juce::jlimit (0.0f, 1.2f, raw (ids::reverb) * mc.reverbMul), 1.2f, ex);
-    const float decay      = melt (juce::jlimit (0.0f, 1.0f, raw (ids::decay) + (halfTime ? 0.12f : 0.0f)), 1.0f, ex);
-    const float cloud      = melt (juce::jlimit (0.0f, 1.0f, raw (ids::cloud) + mc.cloudAdd), 1.0f, ex);
+    const float reverbSend = melt (juce::jlimit (0.0f, 1.2f, rp.reverb->load() * mc.reverbMul), 1.2f, ex);
+    const float decay      = melt (juce::jlimit (0.0f, 1.0f, rp.decay->load() + (halfTime ? 0.12f : 0.0f)), 1.0f, ex);
+    const float cloud      = melt (juce::jlimit (0.0f, 1.0f, rp.cloud->load() + mc.cloudAdd), 1.0f, ex);
     const float revSize    = halfTime ? 0.78f : 0.6f;
 
     // REVERSE: force every grain to play backwards.
-    const bool reverseOn = raw (ids::reverse) > 0.5f;
+    const bool reverseOn = rp.reverse->load() > 0.5f;
 
     GrainParams gp;
     gp.grainSizeMs   = juce::jlimit (20.0f, 500.0f,
-                                     melt (raw (ids::size) * mc.sizeMul * (halfTime ? 1.4f : 1.0f), 500.0f, ex));
-    gp.density       = juce::jlimit (1.0f, 120.0f, melt (raw (ids::density) * mc.densityMul, 120.0f, ex));
-    gp.spray         = juce::jlimit (0.0f, 1.0f, melt (raw (ids::spray) + mc.sprayAdd, 1.0f, ex));
-    gp.pitchSemis    = raw (ids::pitch) + (halfTime ? -12.0f : 0.0f);
-    gp.pitchQuantize = raw (ids::pitchMode) < 0.5f;
+                                     melt (rp.size->load() * mc.sizeMul * (halfTime ? 1.4f : 1.0f), 500.0f, ex));
+    gp.density       = juce::jlimit (1.0f, 120.0f, melt (rp.density->load() * mc.densityMul, 120.0f, ex));
+    gp.spray         = juce::jlimit (0.0f, 1.0f, melt (rp.spray->load() + mc.sprayAdd, 1.0f, ex));
+    gp.pitchSemis    = rp.pitch->load() + (halfTime ? -12.0f : 0.0f);
+    gp.pitchQuantize = rp.pitchMode->load() < 0.5f;
     gp.reverseProb   = reverseOn ? 1.0f : juce::jlimit (0.0f, 1.0f, 0.05f + mc.reverseAdd);
     gp.stereoSpread  = 0.65f;
     gp.jitter        = 0.35f;
-    gp.chaos         = raw (ids::chaos);
-    gp.drift         = juce::jlimit (0.0f, 1.0f, melt (mc.drift + raw (ids::chaos) * 0.3f, 0.6f, ex));
-    gp.frozen        = raw (ids::freeze) > 0.5f;
+    gp.chaos         = rp.chaos->load();
+    gp.drift         = juce::jlimit (0.0f, 1.0f, melt (mc.drift + rp.chaos->load() * 0.3f, 0.6f, ex));
+    gp.frozen        = rp.freeze->load() > 0.5f;
 
-    const bool  limiterOn = raw (ids::limiter) > 0.5f;
+    const bool  limiterOn = rp.limiter->load() > 0.5f;
 
     // --- copy dry ------------------------------------------------------------
     dryBuffer.setSize (2, numSamples, false, false, true);
@@ -303,7 +338,7 @@ void LunaraAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     //   IN   (0): effects process the live input only
     //   OUT  (1): effects process the granular cloud only   (default / legacy)
     //   BOTH (2): effects process the live input + the cloud
-    const int fxSrc = juce::jlimit (0, 2, (int) raw (ids::fxSource));
+    const int fxSrc = juce::jlimit (0, 2, (int) rp.fxSource->load());
     {
         const float* dL = dryBuffer.getReadPointer (0);
         const float* dR = dryBuffer.getReadPointer (1);
@@ -380,7 +415,7 @@ void LunaraAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     // A continuous 20..500 Hz low-cut (100 Hz by default) so big reverb/delay
     // tails never turn the low end into mud. The cutoff glides internally, so
     // sweeping the knob produces a smooth filter sweep.
-    outputHpf.setCutoff (raw (ids::hpf));
+    outputHpf.setCutoff (rp.hpf->load());
     outputHpf.process (outBuffer.getWritePointer (0), outBuffer.getWritePointer (1), numSamples);
 
     // --- auto gain + output, applied BEFORE the limiter ----------------------
@@ -390,7 +425,7 @@ void LunaraAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
     // already-limited signal by up to +18 dB, blowing past full scale (the
     // "volume to the heavens" bug). With Auto Gain on the OUTPUT knob is
     // bypassed (and disabled in the UI) so the two cannot fight each other.
-    const bool autoGainOn = raw (ids::autoGain) > 0.5f;
+    const bool autoGainOn = rp.autoGain->load() > 0.5f;
     float autoTarget = 1.0f;
     bool  autoGainClamped = false;
 
@@ -427,7 +462,7 @@ void LunaraAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
 
     outputSmoothed.setTargetValue (autoGainOn
                                        ? 1.0f
-                                       : juce::Decibels::decibelsToGain (raw (ids::output)));
+                                       : juce::Decibels::decibelsToGain (rp.output->load()));
     {
         float* oL = outBuffer.getWritePointer (0);
         float* oR = outBuffer.getWritePointer (1);
@@ -538,8 +573,8 @@ void LunaraAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         snap.decay       = decay;
         snap.send        = reverbSend;
         snap.cloud       = cloud;
-        snap.hpf         = raw (ids::hpf);
-        snap.output      = raw (ids::output);
+        snap.hpf         = rp.hpf->load();
+        snap.output      = rp.output->load();
         snap.pitch       = gp.pitchSemis;
         snap.size        = gp.grainSizeMs;
         snap.density     = gp.density;

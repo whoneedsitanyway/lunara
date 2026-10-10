@@ -52,6 +52,7 @@ public:
         writePos = 0;
         for (auto& g : grains)
             g = {};
+        activeGrains = 0;
         spawnAccumulator = 0.0f;
         rng.seed (0x5eed);
         driftPhase = flutterPhase = 0.0;
@@ -71,6 +72,7 @@ public:
         writePos = 0;
         for (auto& g : grains)
             g = {};
+        activeGrains = 0;
         spawnAccumulator = 0.0f;
         driftPhase = flutterPhase = 0.0;
         driftRandom = 0.0f;
@@ -163,25 +165,33 @@ public:
 
             float wetL = 0.0f, wetR = 0.0f;
 
-            for (auto& g : grains)
+            // Skipped entirely while the cloud is silent (no active grains), so
+            // an idle engine costs almost nothing per sample.
+            if (activeGrains > 0)
             {
-                if (! g.active)
-                    continue;
+                for (auto& g : grains)
+                {
+                    if (! g.active)
+                        continue;
 
-                const float w  = window (g.phase);
-                const float s  = readInterpolated (bufL, g.pos, bufLen);
-                const float sR = (bufR != nullptr) ? readInterpolated (bufR, g.pos, bufLen) : s;
+                    const float w  = window (g.phase);
+                    const float s  = readInterpolated (bufL, g.pos, bufLen);
+                    const float sR = (bufR != nullptr) ? readInterpolated (bufR, g.pos, bufLen) : s;
 
-                wetL += s  * w * g.panL;
-                wetR += sR * w * g.panR;
+                    wetL += s  * w * g.panL;
+                    wetR += sR * w * g.panR;
 
-                g.pos += g.baseInc * driftRatio;
-                while (g.pos >= bufLenF) g.pos -= bufLenF;
-                while (g.pos < 0.0f)     g.pos += bufLenF;
+                    g.pos += g.baseInc * driftRatio;
+                    while (g.pos >= bufLenF) g.pos -= bufLenF;
+                    while (g.pos < 0.0f)     g.pos += bufLenF;
 
-                g.phase += g.phaseInc;
-                if (g.phase >= 1.0f || ! std::isfinite (g.pos))
-                    g.active = false;
+                    g.phase += g.phaseInc;
+                    if (g.phase >= 1.0f || ! std::isfinite (g.pos))
+                    {
+                        g.active = false;
+                        --activeGrains;
+                    }
+                }
             }
 
             outL[n] = softClip (wetL * grainGain);
@@ -331,6 +341,7 @@ private:
         slot->phaseInc = (float) (1.0 / grainLen);
         slot->panL     = panL;
         slot->panR     = panR;
+        ++activeGrains;
     }
 
     float uniform (float lo, float hi)
@@ -344,6 +355,7 @@ private:
 
     double sr = 48000.0;
     int    writePos = 0;
+    int    activeGrains = 0;
     float  spawnAccumulator = 0.0f;
     std::mt19937 rng { 0x5eed };
 
