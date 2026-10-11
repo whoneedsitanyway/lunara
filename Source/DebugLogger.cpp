@@ -18,7 +18,17 @@ DebugLogger::~DebugLogger()
 void DebugLogger::start()
 {
     if (! isThreadRunning())
+    {
+        // Each fresh session starts with a clean log, so it only ever holds the
+        // current run instead of appending to everything from previous launches.
+        if (! sessionStarted)
+        {
+            clearLog();
+            sessionStarted = true;
+        }
+
         startThread (juce::Thread::Priority::low);
+    }
 }
 
 void DebugLogger::stop()
@@ -49,8 +59,15 @@ void DebugLogger::push (const BlockSnapshot& s) noexcept
 //==============================================================================
 juce::File DebugLogger::getLogFile() const
 {
+   #ifdef LUNARA_TEST_BUILD
+    // Test builds write to a scratch file in the temp folder, so a test run
+    // never touches (or clears) the real per-user log.
+    return juce::File::getSpecialLocation (juce::File::tempDirectory)
+               .getChildFile ("lunara_debug.log");
+   #else
     // Same per-user folder as presets / theme, so everything lives together.
     return PresetManager::getAppDir().getChildFile ("lunara_debug.log");
+   #endif
 }
 
 void DebugLogger::clearLog()

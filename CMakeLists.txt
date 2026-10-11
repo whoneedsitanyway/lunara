@@ -116,6 +116,9 @@ function(lunara_add_plugin_test name source)
         JUCE_DISPLAY_SPLASH_SCREEN=0
         JUCE_STRICT_REFCOUNTEDPOINTER=1
         JucePlugin_Name="Lunara"
+        # Keeps the black-box log out of the real per-user file (see
+        # DebugLogger::getLogFile) so running the tests never clobbers it.
+        LUNARA_TEST_BUILD=1
     )
     target_link_libraries(${name}
         PRIVATE

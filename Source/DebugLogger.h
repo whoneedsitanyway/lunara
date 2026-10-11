@@ -110,6 +110,10 @@ private:
     double lastHeartbeatSec = -1000.0;
     bool   fileStarted = false;
 
+    // Set once the first session has started, so the log is truncated on launch
+    // but not again on every start()/stop() cycle within the same session.
+    bool   sessionStarted = false;
+
     // Writer-thread only: anomaly coalescing state.
     double   lastLoggedSec = -1.0e9;
     unsigned lastLoggedFlags = 0;
