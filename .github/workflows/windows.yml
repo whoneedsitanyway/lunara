@@ -10,11 +10,6 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [x64]
-        build-type: [Release]
 
     steps:
       - name: Checkout
@@ -25,30 +20,30 @@ jobs:
       - name: Configure CMake
         run: |
           cmake -B build `
-            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} `
-            -DCMAKE_SYSTEM_VERSION="10.0.18363.0" `
+            -DCMAKE_BUILD_TYPE=Release `
             -DJUCE_BUILD_EXAMPLES=OFF `
             -DJUCE_BUILD_EXTRAS=OFF `
             -DJUCE_BUILD_TESTING=OFF
 
-      - name: Build plugin
+      - name: Build VST3
         run: |
-          cmake --build build --config ${{ matrix.build-type }} --target Lunara_VST3
+          cmake --build build --config Release --target Lunara_VST3
 
       - name: Package VST3
+        id: package
         run: |
-          $vst3 = "build/${{ matrix.build-type }}/Lunara_VST3"
           $out = "build/Lunara.vst3"
-          if (Test-Path $vst3) {
-            Copy-Item -Recurse $vst3 $out
-          } else {
-            Write-Error "VST3 bundle not found at $vst3"
+          # JUCE 8 artefact path: build/*_artefacts/Release/VST3/Lunara.vst3
+          $vst3 = Get-ChildItem -Recurse -Directory -Path build -Filter "Lunara.vst3" | Select-Object -First 1
+          if (-not $vst3) {
+            Write-Error "VST3 bundle not found"
             exit 1
           }
+          Copy-Item -Recurse $vst3.FullName $out
+          Write-Output "path=$out" >> $env:GITHUB_OUTPUT
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: Lunara-VST3-Windows-x64
-          path: build/Lunara.vst3
-          if-no-files-found: error
+          path: ${{ steps.package.outputs.path }}
