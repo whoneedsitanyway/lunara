@@ -94,6 +94,10 @@ public:
             smoothSizeScale += (targetSizeScale - smoothSizeScale) * sizeCoeff;
         }
 
+        // The glide must never carry a non-finite value into the read taps.
+        if (! std::isfinite (smoothSizeScale))
+            smoothSizeScale = targetSizeScale;
+
         const float fb        = 0.50f + decay * 0.36f;
         const float lpCoeff   = std::exp (-juce::MathConstants<float>::twoPi
                                           * juce::jmap (damp, 12000.0f, 1500.0f)
@@ -117,6 +121,10 @@ public:
         {
             lineLen[i] = baseLen[i] * smoothSizeScale
                        + modAmt * std::sin (juce::MathConstants<float>::twoPi * modPhase[i]);
+            // A non-finite length would defeat jlimit (NaN fails every comparison)
+            // and then make the read index garbage; snap it to a safe value.
+            if (! std::isfinite (lineLen[i]))
+                lineLen[i] = 8.0f;
             // Never let the read tap run past the allocated line.
             lineLen[i] = juce::jlimit (8.0f, (float) lines[i].size() - 4.0f, lineLen[i]);
             lineSize[i] = (int) lines[i].size();
@@ -126,8 +134,8 @@ public:
 
         for (int n = 0; n < numSamples; ++n)
         {
-            const float dryL = L[n];
-            const float dryR = R[n];
+            const float dryL = std::isfinite (L[n]) ? L[n] : 0.0f;
+            const float dryR = std::isfinite (R[n]) ? R[n] : 0.0f;
 
             float dL = dryL, dR = dryR;
             for (int i = 0; i < kDiff; ++i)
@@ -221,6 +229,9 @@ private:
 
     static float softSat (float x) noexcept
     {
+        // NaN / Inf fail both range comparisons and would otherwise pass straight
+        // through into the FDN state (and out to the output), so trap them first.
+        if (! std::isfinite (x)) return 0.0f;
         if (x >  0.95f) return  0.95f + 0.05f * std::tanh ((x - 0.95f) / 0.05f);
         if (x < -0.95f) return -0.95f + 0.05f * std::tanh ((x + 0.95f) / 0.05f);
         return x;
@@ -228,6 +239,15 @@ private:
 
     float readInterp (const std::vector<float>& line, float pos, int sz) const noexcept
     {
+        if (sz < 2)
+            return 0.0f;
+
+        // Keep the tap strictly in range: a non-finite or out-of-range position
+        // must never turn into an out-of-bounds read of heap memory.
+        if (! std::isfinite (pos))
+            pos = 0.0f;
+        pos = juce::jlimit (0.0f, (float) (sz - 1), pos);
+
         const int i0 = (int) pos;
         const int i1 = (i0 + 1 < sz) ? i0 + 1 : 0;
         const float frac = pos - (float) i0;

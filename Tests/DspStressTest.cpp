@@ -9,6 +9,7 @@
 #include <iostream>
 #include <cmath>
 #include <random>
+#include <limits>
 
 #include "../Source/dsp/GrainEngine.h"
 #include "../Source/dsp/SyncDelay.h"
@@ -114,11 +115,60 @@ int main()
 
     const double wetRms = wetRmsN > 0 ? std::sqrt (wetRmsAcc / (double) wetRmsN) : 0.0;
 
+    // --- non-finite robustness -----------------------------------------------
+    // A single NaN / Inf sample (leaked from an upstream stage or a corrupted
+    // state) must never propagate through the chain, turn into an out-of-bounds
+    // read, or blow the feedback loops up.  Each stage must sanitise it.
+    bool nfBlowup = false;
+    double nfMaxAbs = 0.0;
+    {
+        lunara::GrainEngine grain2;
+        lunara::SyncDelay   delay2;
+        lunara::CloudReverb reverb2;
+        lunara::Limiter     limiter2;
+        grain2.prepare (sr, block, 2);
+        delay2.prepare (sr);
+        reverb2.prepare (sr);
+        limiter2.prepare (sr);
+
+        for (int b = 0; b < 300; ++b)
+        {
+            for (int ch = 0; ch < 2; ++ch)
+            {
+                auto* p = dry.getWritePointer (ch);
+                for (int n = 0; n < block; ++n)
+                    p[n] = ((n == 0 || n == block / 2) && b % 2 == 0)
+                               ? (b % 4 == 0 ? std::nanf ("") : std::numeric_limits<float>::infinity())
+                               : 0.3f;
+            }
+
+            wet.clear();
+            grain2.process (dry.getReadPointer (0), dry.getReadPointer (1),
+                            wet.getWritePointer (0), wet.getWritePointer (1), block, gp);
+            delay2.process (wet.getWritePointer (0), wet.getWritePointer (1),
+                            block, 375.0f, 0.95f, 18000.0f, 1.0f);
+            reverb2.process (wet.getWritePointer (0), wet.getWritePointer (1),
+                             block, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 1.2f);
+            limiter2.process (wet.getWritePointer (0), wet.getWritePointer (1), block, 0.98f);
+
+            for (int ch = 0; ch < 2; ++ch)
+            {
+                const float* p = wet.getReadPointer (ch);
+                for (int n = 0; n < block; ++n)
+                {
+                    if (! std::isfinite (p[n])) nfBlowup = true;
+                    else nfMaxAbs = juce::jmax (nfMaxAbs, (double) std::abs (p[n]));
+                }
+            }
+        }
+    }
+
     std::cout << "blocks=" << numBlocks
               << "  outMaxAbs=" << outMaxAbs
               << "  grainMax=" << grainMax << "  delayMax=" << delayMax << "  wetMaxAbs=" << wetMaxAbs
               << "  wetRms=" << wetRms
-              << "  nonFinite=" << (nonFinite ? "YES" : "no") << std::endl;
+              << "  nonFinite=" << (nonFinite ? "YES" : "no")
+              << "  nfMaxAbs=" << nfMaxAbs << "  nfBlowup=" << (nfBlowup ? "YES" : "no") << std::endl;
 
     if (nonFinite || outMaxAbs > 1.05)
     {
@@ -129,6 +179,12 @@ int main()
     if (wetMaxAbs > 4.0 || wetRms > 1.0)
     {
         std::cout << "FAIL: pre-limiter signal is too hot (would saturate)" << std::endl;
+        return 1;
+    }
+
+    if (nfBlowup || nfMaxAbs > 1.05)
+    {
+        std::cout << "FAIL: non-finite input was not sanitised (leaked or blew up)" << std::endl;
         return 1;
     }
 

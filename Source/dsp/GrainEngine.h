@@ -158,9 +158,9 @@ public:
             // still advances, so grains slowly scan the whole frozen buffer.
             if (! p.frozen)
             {
-                bufL[writePos] = inL[n];
+                bufL[writePos] = std::isfinite (inL[n]) ? inL[n] : 0.0f;
                 if (bufR != nullptr)
-                    bufR[writePos] = inR[n];
+                    bufR[writePos] = std::isfinite (inR[n]) ? inR[n] : 0.0f;
             }
 
             float wetL = 0.0f, wetR = 0.0f;
@@ -229,8 +229,12 @@ private:
     // Hann window via the pre-computed table (linear interpolation).
     float window (float phase) const noexcept
     {
-        const float f = phase * (float) kWindowLutSize;
-        const int   i = (int) f;
+        if (! std::isfinite (phase))
+            return 0.0f;
+
+        const float f = juce::jlimit (0.0f, (float) kWindowLutSize,
+                                      phase * (float) kWindowLutSize);
+        const int   i = juce::jlimit (0, kWindowLutSize - 1, (int) f);
         const float frac = f - (float) i;
         const float a = windowLut[(size_t) i];
         const float b = windowLut[(size_t) (i + 1)];
@@ -242,6 +246,7 @@ private:
     // downstream feedback loops (which would ring for seconds as "noise").
     static float softClip (float x) noexcept
     {
+        if (! std::isfinite (x)) return 0.0f;
         if (x >  0.7f) return  0.7f + 0.3f * std::tanh ((x - 0.7f) / 0.3f);
         if (x < -0.7f) return -0.7f + 0.3f * std::tanh ((x + 0.7f) / 0.3f);
         return x;
@@ -251,6 +256,9 @@ private:
     // are pitch-shifted, at a small extra CPU cost.
     static float readInterpolated (const float* data, float pos, int bufLen) noexcept
     {
+        if (bufLen < 4 || ! std::isfinite (pos))
+            return 0.0f;
+
         const int i1 = (int) pos;
         const float frac = pos - (float) i1;
         const int i0 = (i1 > 0) ? i1 - 1 : bufLen - 1;

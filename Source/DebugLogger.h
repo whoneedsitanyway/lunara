@@ -94,6 +94,12 @@ private:
     static constexpr int kHistory  = 256;
     static constexpr int kMaxLogBytes = 4 * 1024 * 1024;
 
+    // When the same set of flags keeps firing block after block (e.g. a benign
+    // AUTOGAIN_MAX while the input is silent) we must not dump the whole history
+    // every block: that floods the log. Repeats are coalesced into a counter and
+    // only re-logged when the flags change or this cooldown has elapsed.
+    static constexpr double kAnomalyCooldownSec = 5.0;
+
     juce::AbstractFifo fifo { kFifoSize };
     std::array<BlockSnapshot, kFifoSize> fifoData;
 
@@ -103,6 +109,11 @@ private:
     int    historyWrite = 0;
     double lastHeartbeatSec = -1000.0;
     bool   fileStarted = false;
+
+    // Writer-thread only: anomaly coalescing state.
+    double   lastLoggedSec = -1.0e9;
+    unsigned lastLoggedFlags = 0;
+    int      suppressedSinceLastLog = 0;
 
     std::atomic<int>      anomalyCount   { 0 };
     std::atomic<unsigned> lastFlags      { 0 };

@@ -68,7 +68,14 @@ public:
 
         for (int n = 0; n < numSamples; ++n)
         {
+            // A non-finite sample (e.g. leaked from an upstream stage) must not be
+            // allowed to poison the feedback loop; treat it as silence.
+            L[n] = std::isfinite (L[n]) ? L[n] : 0.0f;
+            R[n] = std::isfinite (R[n]) ? R[n] : 0.0f;
+
             currentDelaySamples += (targetDelay - currentDelaySamples) * glideCoeff;
+            if (! std::isfinite (currentDelaySamples))
+                currentDelaySamples = targetDelay;
 
             float readPos = (float) writePos - currentDelaySamples;
             if (readPos < 0.0f)
@@ -152,6 +159,7 @@ private:
 
     static float softSat (float x) noexcept
     {
+        if (! std::isfinite (x)) return 0.0f;
         if (x >  0.95f) return  0.95f + 0.05f * std::tanh ((x - 0.95f) / 0.05f);
         if (x < -0.95f) return -0.95f + 0.05f * std::tanh ((x + 0.95f) / 0.05f);
         return x;
@@ -159,6 +167,13 @@ private:
 
     static float readInterp (const std::vector<float>& line, float pos, int lineLen) noexcept
     {
+        if (lineLen < 2)
+            return 0.0f;
+
+        if (! std::isfinite (pos))
+            pos = 0.0f;
+        pos = juce::jlimit (0.0f, (float) (lineLen - 1), pos);
+
         const int i0 = (int) pos;
         const int i1 = (i0 + 1 < lineLen) ? i0 + 1 : 0;
         const float frac = pos - (float) i0;

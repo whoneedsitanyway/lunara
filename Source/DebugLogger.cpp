@@ -59,6 +59,9 @@ void DebugLogger::clearLog()
     if (f.existsAsFile())
         f.deleteFile();
     fileStarted = false;
+    lastLoggedSec = -1.0e9;
+    lastLoggedFlags = 0;
+    suppressedSinceLastLog = 0;
 }
 
 //==============================================================================
@@ -98,23 +101,46 @@ void DebugLogger::drain()
             lastAnomalySec.store (s.timeSec, std::memory_order_relaxed);
             anomalyCount.fetch_add (1, std::memory_order_relaxed);
 
-            juce::String batch;
-            batch << "\n"
-                  << "============================================================\n"
-                  << "*** ANOMALY @" << timestamp() << "  flags: "
-                  << describeFlags (s.flags) << "\n"
-                  << "============================================================\n";
+            // Coalesce a storm of identical flags: log the first one, then only
+            // re-log once the flags change or the cooldown has elapsed. This keeps
+            // a benign, repeating flag (e.g. AUTOGAIN_MAX on a silent input) from
+            // dumping the entire history on every block and flooding the file.
+            const bool flagsChanged    = (s.flags != lastLoggedFlags);
+            const bool cooldownElapsed = (s.timeSec - lastLoggedSec >= kAnomalyCooldownSec);
+            const bool firstEver       = (lastLoggedSec < -1.0e8);
 
-            // Dump the recent history (oldest first) so the lead-up is visible.
-            const int n = historyCount;
-            for (int i = 0; i < n; ++i)
+            if (firstEver || flagsChanged || cooldownElapsed)
             {
-                const int idx = (historyWrite - n + i + kHistory * 2) % kHistory;
-                batch << formatLine (history[(size_t) idx], true) << "\n";
+                juce::String batch;
+                batch << "\n"
+                      << "============================================================\n"
+                      << "*** ANOMALY @" << timestamp() << "  flags: "
+                      << describeFlags (s.flags) << "\n"
+                      << "============================================================\n";
+
+                if (suppressedSinceLastLog > 0)
+                    batch << "  (+" << suppressedSinceLastLog
+                          << " similar block(s) suppressed since the last entry)\n";
+
+                // Dump the recent history (oldest first) so the lead-up is visible.
+                const int n = historyCount;
+                for (int i = 0; i < n; ++i)
+                {
+                    const int idx = (historyWrite - n + i + kHistory * 2) % kHistory;
+                    batch << formatLine (history[(size_t) idx], true) << "\n";
+                }
+                batch << "---- trigger block ----\n";
+                batch << formatLine (s, true) << "\n";
+                appendLine (batch);
+
+                lastLoggedFlags = s.flags;
+                lastLoggedSec = s.timeSec;
+                suppressedSinceLastLog = 0;
             }
-            batch << "---- trigger block ----\n";
-            batch << formatLine (s, true) << "\n";
-            appendLine (batch);
+            else
+            {
+                ++suppressedSinceLastLog;
+            }
         }
         else if (s.timeSec - lastHeartbeatSec >= 2.0)
         {
