@@ -235,7 +235,11 @@ Dry/wet применяется глобально (Mix). Уровень (Auto Ga
   нейм-плейт; хедер: слева окошко пресетов + иконки Save, темы и **LOG**, справа
   ряд `HALF TIME / RANDOM / COMPACT / MODE / FX SOURCE` одного размера; секции
   GRAINS / DELAY / SPACE / OUTPUT; визуализация внизу. В DELAY кнопка `SYNC`
-  справа от `DIVISION`. **FX SOURCE** — циклическая 3-позиционная кнопка
+  справа от `DIVISION`. **SYNC** блокирует (приглушает) ручку **TIME** — при
+  включённом синке время дилея берётся из BPM, и ручка неактивна; состояние
+  ручки обновляется в `updateSyncUi()` (по образцу `updateAutoGainUi()` для
+  OUTPUT/Auto Gain), в том числе после загрузки пресета. **FX SOURCE** —
+  циклическая 3-позиционная кнопка
   (`FX IN` / `FX OUT` / `FX BOTH`), задающая коммутацию эффектов (см. схему цепи).
   В GRAINS под ручками — комбо `PITCH MODE` и галочка **REVERSE**; в OUTPUT
   галочки идут блоком 2×2 (`Limiter | Auto Gain` и `Freeze | Stretch`). В шапке

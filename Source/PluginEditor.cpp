@@ -54,10 +54,12 @@ LunaraAudioProcessorEditor::LunaraAudioProcessorEditor (LunaraAudioProcessor& p)
     modeBox.setColour (juce::ComboBox::textColourId, findColour (LunaraLookAndFeel::accentColourId));
     modeLabel.setVisible (false);
 
-    syncButton.setTooltip ("SYNC - lock the delay time to the host tempo");
+    syncButton.setTooltip ("SYNC - lock the delay time to the host tempo (disables TIME)");
     addAndMakeVisible (syncButton);
     syncAttach = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
         processorRef.apvts, ids::sync, syncButton);
+    syncButton.onClick = [this] { updateSyncUi(); };
+    updateSyncUi();
 
     autoGainButton.setTooltip ("AUTO GAIN - keep the output level matching the input (disables OUTPUT)");
     addAndMakeVisible (autoGainButton);
@@ -176,6 +178,10 @@ void LunaraAudioProcessorEditor::timerCallback()
     // preset load, which changes the parameter without a click).
     updateAutoGainUi();
 
+    // Keeps the TIME knob in sync with the SYNC state (also after a preset load,
+    // which changes the parameter without a click).
+    updateSyncUi();
+
     // Keeps the FX SOURCE label in sync with the parameter (e.g. after a preset
     // load or a host automation change).
     updateFxSourceButton();
@@ -194,6 +200,21 @@ void LunaraAudioProcessorEditor::updateAutoGainUi()
     output.slider.setEnabled (! on);
     output.slider.setAlpha (on ? 0.35f : 1.0f);
     output.label.setAlpha (on ? 0.45f : 1.0f);
+}
+
+// When SYNC is on the delay time is locked to the host tempo, so the TIME knob
+// has no effect. Dim and disable it (like OUTPUT under Auto Gain) to make that
+// obvious; the DIVISION combo is the control that matters in this state.
+void LunaraAudioProcessorEditor::updateSyncUi()
+{
+    const bool on = processorRef.apvts.getRawParameterValue (ids::sync)->load() > 0.5f;
+    if (on == lastSyncOn)
+        return;
+
+    lastSyncOn = on;
+    delay.slider.setEnabled (! on);
+    delay.slider.setAlpha (on ? 0.35f : 1.0f);
+    delay.label.setAlpha (on ? 0.45f : 1.0f);
 }
 
 //==============================================================================

@@ -20,6 +20,7 @@ public:
 private:
     void timerCallback() override;
     void updateAutoGainUi();
+    void updateSyncUi();
     void updateFxSourceButton();
     void cycleFxSource();
     struct Knob
@@ -89,6 +90,7 @@ private:
     bool compact = false;
     bool darkTheme = true;
     bool lastAutoGainOn = false;   // cached Auto Gain state (dims OUTPUT when on)
+    bool lastSyncOn = false;       // cached SYNC state (dims TIME when on)
     static constexpr int kFullHeight    = 760;
     static constexpr int kCompactHeight = 500;
 
