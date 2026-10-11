@@ -1,0 +1,54 @@
+name: Build Windows Plugin
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch: [x64]
+        build-type: [Release]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Configure CMake
+        run: |
+          cmake -B build `
+            -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} `
+            -DCMAKE_SYSTEM_VERSION="10.0.18363.0" `
+            -DJUCE_BUILD_EXAMPLES=OFF `
+            -DJUCE_BUILD_EXTRAS=OFF `
+            -DJUCE_BUILD_TESTING=OFF
+
+      - name: Build plugin
+        run: |
+          cmake --build build --config ${{ matrix.build-type }} --target Lunara_VST3
+
+      - name: Package VST3
+        run: |
+          $vst3 = "build/${{ matrix.build-type }}/Lunara_VST3"
+          $out = "build/Lunara.vst3"
+          if (Test-Path $vst3) {
+            Copy-Item -Recurse $vst3 $out
+          } else {
+            Write-Error "VST3 bundle not found at $vst3"
+            exit 1
+          }
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Lunara-VST3-Windows-x64
+          path: build/Lunara.vst3
+          if-no-files-found: error
