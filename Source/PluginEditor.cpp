@@ -156,10 +156,15 @@ LunaraAudioProcessorEditor::LunaraAudioProcessorEditor (LunaraAudioProcessor& p)
     refreshPresets();
 
     // On a fresh instance (the host has not restored a saved project) start with
-    // the default factory preset selected and applied. When a project is
-    // reloaded the restored state is kept untouched.
-    if (! processorRef.wasStateRestored())
+    // the default factory preset selected and applied. This must happen only
+    // once per instance: hosts destroy and recreate the editor (e.g. switching
+    // tracks), and re-applying on every open would wipe the user's edits. A
+    // restored project is never overridden.
+    if (! processorRef.wasStateRestored() && ! processorRef.wasDefaultPresetApplied())
+    {
         loadPresetByName (PresetManager::getDefaultPresetName());
+        processorRef.markDefaultPresetApplied();
+    }
 
     // --- oscilloscope --------------------------------------------------------
     addAndMakeVisible (waveDisplay);
@@ -267,21 +272,22 @@ void LunaraAudioProcessorEditor::refreshPresets()
         presetBox.addItem (n, id++);
 
     // Prefer the last-used preset, then the default factory preset, then the
-    // first available name.
-    const auto last = presetManager.getLastPreset();
+    // first available name. The last-used name lives on the processor so it
+    // survives the editor being recreated by the host.
+    const auto last = processorRef.getLastPresetName();
     const auto def  = PresetManager::getDefaultPresetName();
     const auto toSelect = names.contains (last) ? last
                         : names.contains (def)  ? def
                                                 : names[0];
     presetBox.setText (toSelect, juce::dontSendNotification);
-    presetManager.setLastPreset (toSelect);
+    processorRef.setLastPresetName (toSelect);
 }
 
 void LunaraAudioProcessorEditor::loadPresetByName (const juce::String& name)
 {
     if (presetManager.loadPreset (name))
     {
-        presetManager.setLastPreset (name);
+        processorRef.setLastPresetName (name);
         repaint();
     }
 }
@@ -291,7 +297,7 @@ void LunaraAudioProcessorEditor::showSavePresetDialog()
     auto* aw = new juce::AlertWindow ("Save Preset",
                                       "Enter a name for this preset:",
                                       juce::MessageBoxIconType::NoIcon);
-    aw->addTextEditor ("name", presetManager.getLastPreset(), "Name:");
+    aw->addTextEditor ("name", processorRef.getLastPresetName(), "Name:");
     aw->addButton ("Save",   1, juce::KeyPress (juce::KeyPress::returnKey));
     aw->addButton ("Cancel", 0, juce::KeyPress (juce::KeyPress::escapeKey));
 
@@ -303,7 +309,7 @@ void LunaraAudioProcessorEditor::showSavePresetDialog()
                 const auto name = aw->getTextEditorContents ("name").trim();
                 if (name.isNotEmpty() && presetManager.savePreset (name))
                 {
-                    presetManager.setLastPreset (name);
+                    processorRef.setLastPresetName (name);
                     refreshPresets();
                     presetBox.setText (name, juce::dontSendNotification);
                 }

@@ -136,6 +136,46 @@ int main()
         ok = ok && comboShowsDefault && applied;
     }
 
+    // --- re-opening the editor must NOT re-apply the default preset ----------
+    // Hosts destroy and recreate the editor (e.g. switching tracks); a re-open
+    // used to re-apply the default and wipe the user's edits.
+    {
+        LunaraAudioProcessor proc;
+        proc.setPlayConfigDetails (2, 2, 48000.0, 512);
+
+        // First open applies the default ("Play with Me" has density 100).
+        { std::unique_ptr<juce::AudioProcessorEditor> editor (proc.createEditor()); }
+        const bool firstOpenApplied = std::abs (getParam (proc, "density") - 100.0f) < 0.5f;
+
+        // The user edits a parameter...
+        setParam (proc, "density", 33.0f);
+
+        // ...then the editor is destroyed and recreated. The edit must survive.
+        { std::unique_ptr<juce::AudioProcessorEditor> editor (proc.createEditor()); }
+        const bool editSurvived = std::abs (getParam (proc, "density") - 33.0f) < 0.5f;
+
+        std::cout << "firstOpenApplied=" << firstOpenApplied
+                  << " editSurvivedReopen=" << editSurvived << std::endl;
+        ok = ok && firstOpenApplied && editSurvived;
+    }
+
+    // --- a restored project must not be overridden by the default preset -----
+    {
+        LunaraAudioProcessor proc;
+        proc.setPlayConfigDetails (2, 2, 48000.0, 512);
+        setParam (proc, "density", 44.0f);
+
+        juce::MemoryBlock mb;
+        proc.getStateInformation (mb);
+        proc.setStateInformation (mb.getData(), (int) mb.getSize());   // marks restored
+
+        std::unique_ptr<juce::AudioProcessorEditor> editor (proc.createEditor());
+        const bool restoredKept = std::abs (getParam (proc, "density") - 44.0f) < 0.5f;
+
+        std::cout << "restoredKeptOnOpen=" << restoredKept << std::endl;
+        ok = ok && restoredKept;
+    }
+
     tmpDir.deleteRecursively();
 
     if (! ok)

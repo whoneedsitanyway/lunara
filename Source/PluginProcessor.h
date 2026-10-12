@@ -125,6 +125,20 @@ public:
     // does so for a fresh instance, never overriding a restored project.
     bool wasStateRestored() const noexcept { return stateRestored.load (std::memory_order_relaxed); }
 
+    // True once the default factory preset has been applied for this instance.
+    // The default is applied only on the *first* editor open of a fresh instance:
+    // hosts routinely destroy and recreate the editor (e.g. when switching
+    // tracks), and without this guard every re-open re-applied the default and
+    // wiped the user's edits. Marking it also keeps a restored project safe.
+    bool wasDefaultPresetApplied() const noexcept { return defaultPresetApplied.load (std::memory_order_relaxed); }
+    void markDefaultPresetApplied() noexcept { defaultPresetApplied.store (true, std::memory_order_relaxed); }
+
+    // Last preset selected in the editor. Kept on the processor (not the editor)
+    // so it survives the host destroying and recreating the editor, which would
+    // otherwise make the preset combo fall back to the default name on re-open.
+    const juce::String& getLastPresetName() const noexcept { return lastPresetName; }
+    void setLastPresetName (const juce::String& n) { lastPresetName = n; }
+
     juce::AudioProcessorValueTreeState apvts;
 
 private:
@@ -208,6 +222,14 @@ private:
     std::atomic<bool>  displayLimiting { false };
 
     std::atomic<bool>  stateRestored  { false };
+
+    // Set the first time the default preset is applied, so re-opening the editor
+    // never re-applies it (see wasDefaultPresetApplied()).
+    std::atomic<bool>  defaultPresetApplied { false };
+
+    // Message-thread only: last preset selected in the editor (survives editor
+    // recreation, see getLastPresetName()).
+    juce::String lastPresetName;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (LunaraAudioProcessor)
 };
