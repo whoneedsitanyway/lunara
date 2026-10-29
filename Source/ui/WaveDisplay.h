@@ -49,9 +49,6 @@ private:
     static constexpr float kBarLevels[kNumLevels] = { 0.5f, 1.0f, 2.0f, 4.0f };
     int zoomLevel = 3;   // default = 4 bars
 
-    double startTimeMs = 0.0;
-    static constexpr double kWarmUpMs = 5000.0;
-
     float meterGrDb = 0.0f;
 
     double lastPaintMs = 0.0;

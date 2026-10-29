@@ -6,7 +6,6 @@ namespace lunara
 WaveDisplay::WaveDisplay (LunaraAudioProcessor& p) : proc (p)
 {
     setInterceptsMouseClicks (true, true);
-    startTimeMs = juce::Time::getMillisecondCounterHiRes();
     startTimerHz (90);   // vsync caps it (60 on standard displays, up to 90 on ProMotion)
 
     // The zoom buttons sit on the always-dark oscilloscope screen, so they use
@@ -125,12 +124,13 @@ void WaveDisplay::paint (juce::Graphics& g)
         g.drawVerticalLine ((int) x, inner.getY(), inner.getBottom());
     }
 
-    const double elapsed = now - startTimeMs;
-    const bool warming = elapsed < kWarmUpMs;
     const int numBuckets = proc.getScopeNumBuckets();
+    // The processor's ring buffer starts empty (zero-filled); draw only the part
+    // that already holds audio instead of a flat line of "silence".
+    const int filled = juce::jmin (numBuckets, proc.getScopeFilledBuckets());
     const int w = (int) inner.getWidth();
 
-    if (! warming && numBuckets > 0)
+    if (filled > 0)
     {
         const float bpm = juce::jmax (20.0f, proc.getDisplayBpm());
         const double barSeconds = 4.0 * 60.0 / (double) bpm;
@@ -138,7 +138,7 @@ void WaveDisplay::paint (juce::Graphics& g)
         const double sr = proc.getSampleRate() > 0.0 ? proc.getSampleRate() : 48000.0;
 
         const double bucketSeconds = (double) LunaraAudioProcessor::kScopeDecimate / sr;
-        const int bucketsToShow = juce::jlimit (1, numBuckets,
+        const int bucketsToShow = juce::jlimit (1, filled,
                                                 (int) (windowSeconds / bucketSeconds));
 
         ensureBuffers (bucketsToShow);
@@ -179,12 +179,6 @@ void WaveDisplay::paint (juce::Graphics& g)
 
         drawTrace (tracePathIn,  minIn,  maxIn,  accent, 1.2f);
         drawTrace (tracePathOut, minOut, maxOut, juce::Colours::white.withAlpha (0.30f), 1.6f);
-    }
-    else if (warming)
-    {
-        g.setColour (textDim.withAlpha (0.7f));
-        g.setFont (juce::Font (juce::FontOptions (12.0f)));
-        g.drawText ("warming up...", inner, juce::Justification::centred, false);
     }
 
     // ---- gain-reduction / limiting meter -----------------------------------

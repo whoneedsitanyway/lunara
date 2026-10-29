@@ -202,6 +202,7 @@ void LunaraAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock
     scopeMinOut.assign ((size_t) scopeNumBuckets, 0.0f);
     scopeMaxOut.assign ((size_t) scopeNumBuckets, 0.0f);
     bucketWrite.store (0, std::memory_order_relaxed);
+    scopeFilledBuckets.store (0, std::memory_order_relaxed);
     accMinIn = accMinOut = 1.0e9f;
     accMaxIn = accMaxOut = -1.0e9f;
     accCount = 0;
@@ -636,6 +637,7 @@ void LunaraAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
         const float* o1 = outBuffer.getReadPointer (1);
 
         int bw = bucketWrite.load (std::memory_order_relaxed);
+        int filled = scopeFilledBuckets.load (std::memory_order_relaxed);
         for (int n = 0; n < numSamples; ++n)
         {
             const float i = 0.5f * (d0[n] + d1[n]);
@@ -659,9 +661,13 @@ void LunaraAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, juce:
 
                 if (++bw >= scopeNumBuckets)
                     bw = 0;
+
+                if (filled < scopeNumBuckets)
+                    ++filled;
             }
         }
         bucketWrite.store (bw, std::memory_order_release);
+        scopeFilledBuckets.store (filled, std::memory_order_release);
     }
 }
 

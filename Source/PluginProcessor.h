@@ -108,6 +108,14 @@ public:
 
     int  getScopeNumBuckets() const noexcept { return scopeNumBuckets; }
 
+    // How many of the most recent buckets already hold audio. The ring buffer is
+    // zero-filled after prepareToPlay, so this grows 0 -> scopeNumBuckets; the
+    // editor uses it to draw only the recorded part of the history.
+    int  getScopeFilledBuckets() const noexcept
+    {
+        return scopeFilledBuckets.load (std::memory_order_relaxed);
+    }
+
     // Copies the most recent numBuckets buckets (oldest first) into the arrays.
     void copyScopeBuckets (float* minIn, float* maxIn,
                            float* minOut, float* maxOut, int numBuckets) const;
@@ -212,6 +220,7 @@ private:
     std::vector<float> scopeMinIn, scopeMaxIn, scopeMinOut, scopeMaxOut;
     int scopeNumBuckets = 0;
     std::atomic<int> bucketWrite { 0 };
+    std::atomic<int> scopeFilledBuckets { 0 };
     float accMinIn = 1.0e9f, accMaxIn = -1.0e9f;
     float accMinOut = 1.0e9f, accMaxOut = -1.0e9f;
     int   accCount = 0;
