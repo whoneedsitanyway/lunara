@@ -479,7 +479,7 @@ void LunaraAudioProcessorEditor::paint (juce::Graphics& g)
 
     g.setColour (findColour (LunaraLookAndFeel::textDimColourId));
     g.setFont (juce::Font (juce::FontOptions (11.5f)));
-    g.drawText ("GRANULAR CLOUD  /  DELAY  /  REVERB",
+    g.drawText ("GRANULAR ENGINE",
                 juce::roundToInt (encF.getX() + 36.0f), juce::roundToInt (encF.getY() + 56.0f),
                 380, 16, juce::Justification::centredLeft, false);
 
