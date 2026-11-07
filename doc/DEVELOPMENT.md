@@ -81,6 +81,7 @@ Tests/
   FactoryPresetTest.cpp       вшитые пресеты + выбор "Play with Me" по умолчанию
   HpfTest.cpp                 HPF-ручка: дефолт 100 Гц, режет низ, не трогает верх
   FreezeTest.cpp              Freeze удерживает облако на тишине (без него — затухает)
+  GrainClickTest.cpp          гран не читает через головку записи (нет щелчков)
   StretchReverseTest.cpp      REVERSE разворачивает облако; STRETCH тянет хвост
 doc/                          эта документация
 ```
@@ -99,7 +100,7 @@ doc/                          эта документация
 cd ~/Lunara
 for t in DspTest PresetTest DriftTest HalftimeTest RunawayTest AutoGainTest \
          ThemeRenderTest ParamFormatTest FxSourceTest FactoryPresetTest \
-         HpfTest FreezeTest StretchReverseTest; do
+         HpfTest FreezeTest GrainClickTest StretchReverseTest; do
     "./build/Lunara${t}_artefacts/Release/Lunara${t}" || exit 1
 done
 ```

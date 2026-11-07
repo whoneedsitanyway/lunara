@@ -134,6 +134,7 @@ endfunction()
 lunara_add_dsp_test(LunaraDspTest    Tests/DspStressTest.cpp)
 lunara_add_dsp_test(LunaraDriftTest  Tests/DriftTest.cpp)
 lunara_add_dsp_test(LunaraFreezeTest Tests/FreezeTest.cpp)
+lunara_add_dsp_test(LunaraGrainClickTest Tests/GrainClickTest.cpp)
 
 # --- presets ------------------------------------------------------------------
 lunara_add_processors_test(LunaraPresetTest Tests/PresetTest.cpp)

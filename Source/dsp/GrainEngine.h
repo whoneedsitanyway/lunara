@@ -302,9 +302,10 @@ private:
         const float wildJump = (chaos > 0.0f && uniform (0.0f, 1.0f) < chaos * 0.06f)
                                ? uniform (0.0f, (float) bufLen) : 0.0f;
 
-        float start = (float) writePos - (float) baseOffset - sprayOffset - jitterSamples - wildJump;
-        while (start < 0.0f)            start += (float) bufLen;
-        while (start >= (float) bufLen) start -= (float) bufLen;
+        // Look-back of this grain, in samples (positive = behind the write head,
+        // i.e. reading already-recorded audio; negative = ahead of it, i.e.
+        // reading the oldest material left in the buffer).
+        float lag = (float) baseOffset + sprayOffset + jitterSamples + wildJump;
 
         // Chaos slightly raises the chance of reverse playback.
         const float revProb = juce::jlimit (0.0f, 1.0f, p.reverseProb + chaos * 0.20f);
@@ -336,7 +337,85 @@ private:
         // Chaos mildly varies the grain length (window).
         const double lenScale = juce::jlimit (0.5, 2.0,
                                               1.0 + uniform (-chaos * 0.30f, chaos * 0.30f));
-        const double grainLen = juce::jlimit (16.0, (double) (bufLen - 4), grainLenSamples * lenScale);
+        double grainLen = juce::jlimit (16.0, (double) (bufLen - 4), grainLenSamples * lenScale);
+
+        // ---- never read across the write head -------------------------------
+        // The ring buffer holds the newest sample right at `writePos` and the
+        // oldest one just before it, so a read head that runs across that point
+        // splices the newest sample onto ~2.5 s old material.  That is an
+        // unwindowed step - heard as a click, and with MIX at 100% there is no
+        // dry signal left to mask it.  The head is approached at |rate - 1|
+        // samples per sample when the grain plays forwards and at 1 + rate when
+        // it plays backwards (a reverse grain always comes round the buffer), so
+        // the grain is simply stopped where the two would meet.  Its start
+        // position - and therefore the character of the cloud - is untouched.
+        {
+            // The global drift only ever stretches the playback rate by this
+            // much (see the wow/flutter expression in process()), so the worst
+            // case is covered for the whole grain.
+            const double driftMax = std::exp2 (juce::jlimit (0.0f, 1.0f, p.drift) * 0.0294f);
+            const double rateMax = (double) std::abs (ratio) * driftMax;
+            const double rateMin = (double) std::abs (ratio) / driftMax;
+
+            // Fold the look-back into (-bufLen/2, bufLen/2]: a lag of more than
+            // one buffer length wraps around, as it always did.
+            lag = std::fmod (lag, (float) bufLen);
+            if (lag >  (float) bufLen * 0.5f) lag -= (float) bufLen;
+            if (lag <= -(float) bufLen * 0.5f) lag += (float) bufLen;
+
+            // Modular distance from the read head to the write head, in samples
+            // (the buffer is circular, so a read head that runs past either end
+            // simply keeps going).
+            const double d0 = (lag >= 0.0f) ? (double) lag : (double) bufLen + (double) lag;
+
+            double spliceIn = 0.0;   // samples until the heads meet (0 = never)
+
+            if (reverse)
+            {
+                // A reverse grain sweeps backwards and therefore always closes
+                // in, coming round the buffer at 1 + rate per sample.
+                spliceIn = ((double) bufLen - d0) / (1.0 + rateMax);
+            }
+            else
+            {
+                // Forwards: the read head closes in while it plays faster than
+                // the write head (worst case: the fastest rate) ...
+                if (rateMax > 1.0)
+                    spliceIn = d0 / (rateMax - 1.0);
+
+                // ... and falls behind (until it laps the buffer) while it plays
+                // slower (worst case: the slowest rate).
+                if (rateMin < 1.0)
+                {
+                    const double lap = ((double) bufLen - d0) / (1.0 - rateMin);
+                    spliceIn = (spliceIn > 0.0) ? juce::jmin (spliceIn, lap) : lap;
+                }
+            }
+
+            if (spliceIn > 0.0 && spliceIn < grainLen)
+            {
+                // Stop one sample early: by the next step the read head would
+                // already be past the write head.
+                const double safe = spliceIn - 1.0;
+
+                if (safe >= 16.0)
+                {
+                    grainLen = safe;   // fade out just before the heads meet
+                }
+                else
+                {
+                    // Too little room to shorten: nudge the start back instead.
+                    grainLen = 16.0;
+                    lag = (! reverse && rateMax > 1.0)
+                              ? (float) (16.0 * (rateMax - 1.0) + 4.0)
+                              : 4.0f;
+                }
+            }
+        }
+
+        float start = (float) writePos - lag;
+        while (start < 0.0f)            start += (float) bufLen;
+        while (start >= (float) bufLen) start -= (float) bufLen;
 
         const float pan = uniform (-1.0f, 1.0f) * spread;
         const float panL = std::cos ((pan * 0.5f + 0.5f) * juce::MathConstants<float>::halfPi);
